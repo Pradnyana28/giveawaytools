@@ -91,8 +91,8 @@ export default class Instagram extends Sites {
 
   async request2faCode(page: Page): Promise<void> { }
 
-  async crawlPostLikes(page: Page, postId: string): Promise<PostLikes> {
-    const variables = { shortcode: postId, include_reel: true, first: 24 };
+  async crawlPostLikes(page: Page, postId: string, endCursor?: string): Promise<PostLikes> {
+    const variables = { shortcode: postId, include_reel: true, first: 24, after: endCursor };
     await page.goto(`${this.graphqlHost}/?query_hash=${this.queryHash.likes}&variables=${JSON.stringify(variables)}`, { waitUntil: 'networkidle2' });
     const pageContentHtml = await page.content();
     const { data: { shortcode_media } }: GraphResponse = this.convertToJson(pageContentHtml);
@@ -100,7 +100,11 @@ export default class Instagram extends Sites {
       id: shortcode_media.id,
       totalLikes: shortcode_media.edge_liked_by.count,
       totalLoaded: shortcode_media.edge_liked_by.edges.length,
-      likes: this.mapLikesData(shortcode_media.edge_liked_by.edges)
+      likes: this.mapLikesData(shortcode_media.edge_liked_by.edges),
+      pageInfo: {
+        hasNextPage: shortcode_media.edge_liked_by.page_info.has_next_page,
+        endCursor: shortcode_media.edge_liked_by.page_info.end_cursor
+      }
     };
   }
 
