@@ -1,9 +1,17 @@
 import Sites, { ISitesWithCredentialsOptions } from "../interface/Sites";
 import { Page } from "puppeteer";
+import { PostLikes } from "services/SocMedService";
 
 interface IInstagram extends ISitesWithCredentialsOptions { }
 
+interface GraphResponse {
+  data: any;
+  status: string;
+}
+
 export default class Instagram extends Sites {
+  private graphqlHost = 'https://www.instagram.com/graphql/query';
+
   constructor(options: Omit<IInstagram, 'url'>) {
     super({
       ...options,
@@ -26,13 +34,19 @@ export default class Instagram extends Sites {
     }
   }
 
+  private get queryHash() {
+    return {
+      likes: 'd5d763b1e2acf209d62d22d184488e57'
+    }
+  }
+
   async login(page: Page): Promise<void> {
     let signedIn = false;
     try {
       // Refresh the page, Instagram still need more time to load the session
       await page.goto(this.url, { waitUntil: 'networkidle2' });
       await page.waitForSelector(this.elementIDs.fields.username, {
-        timeout: 2000
+        timeout: 750
       });
     } catch (err) {
       signedIn = true;
@@ -58,15 +72,6 @@ export default class Instagram extends Sites {
 
       await page.waitForNavigation();
 
-      await page.$eval('script[type="text/javascript"]', (element) => {
-        const content = element.innerHTML;
-        console.log(content, 'content');
-        if (content.includes('window._sharedData')) {
-          const userData = content.replace('window._sharedData = ', '');
-          console.log(userData, 'user data');
-        }
-      });
-
       this.saveCookies(page);
 
       this.takeScreenshot(page, 'credentials-finished');
@@ -85,4 +90,30 @@ export default class Instagram extends Sites {
   }
 
   async request2faCode(page: Page): Promise<void> { }
+
+  async crawlPostLikes(page: Page, postId: string): Promise<PostLikes> {
+    const variables = { shortcode: postId, include_reel: true, first: 24 };
+    await page.goto(`${this.graphqlHost}/?query_hash=${this.queryHash.likes}&variables=${JSON.stringify(variables)}`, { waitUntil: 'networkidle2' });
+    const pageContentHtml = await page.content();
+    const { data: { shortcode_media } }: GraphResponse = this.convertToJson(pageContentHtml);
+    return {
+      id: shortcode_media.id,
+      totalLikes: shortcode_media.edge_liked_by.count,
+      totalLoaded: shortcode_media.edge_liked_by.edges.length,
+      likes: this.mapLikesData(shortcode_media.edge_liked_by.edges)
+    };
+  }
+
+  mapLikesData(likes: any[]) {
+    return likes.map((like) => like.node);
+  }
+
+  convertToJson(data: string) {
+    try {
+      return JSON.parse(data.replace('<html><head></head><body><pre style="word-wrap: break-word; white-space: pre-wrap;">', '').replace('</pre></body></html>', ''))
+    } catch (err) {
+      console.log('Failed while converting data to json');
+      return null;
+    }
+  }
 }

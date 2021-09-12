@@ -1,12 +1,13 @@
 import { Page } from "puppeteer";
-import { ISitesObject } from "./interface/Sites";
+import { ISitesObject } from "../interface/Sites";
 
-interface IService extends ISitesObject { }
+export interface IService extends ISitesObject { }
 
-export default class Service {
-  private classInjector: IService;
+export default class Service<T extends IService> {
+  protected classInjector: T;
+  public page: Page | undefined;
 
-  constructor(classInjector: IService) {
+  constructor(classInjector: T) {
     this.classInjector = classInjector;
   }
 
@@ -14,17 +15,17 @@ export default class Service {
     const CI = this.classInjector;
     await CI.checkSession();
 
-    let page = await CI.browser.newPage();
+    this.page = await CI.browser.newPage();
 
     try {
-      await page.goto(CI.url, { waitUntil: 'networkidle2' });
-      await page.waitForTimeout(1000);
-      await CI.login(page);
-      return page;
+      await this.page.goto(CI.url, { waitUntil: 'networkidle2' });
+      await this.page.waitForTimeout(1000);
+      await CI.login(this.page);
     } catch (err) {
       console.log('The error', err);
-      return undefined;
     }
+
+    return this.page;
   }
 }
 

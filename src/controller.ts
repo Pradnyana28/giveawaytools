@@ -1,5 +1,5 @@
+import SocMedService from "./services/SocMedService";
 import Instagram from "./instagram/Instagram";
-import Service from "./service";
 
 export default async function controller(browserInstance: Promise<any>) {
   const browser = await browserInstance;
@@ -9,10 +9,8 @@ export default async function controller(browserInstance: Promise<any>) {
     is2faEnabled: false,
     tenantName: 'pradnyana-giveaway'
   });
-  const session = new Service(ig);
-  const page = await session.boot();
+  const session = new SocMedService(ig);
+  await session.boot();
 
-  if (page) {
-    console.log('START HACKING');
-  }
+  await session.getPostLikes('CFhMm9_gkcq');
 }
