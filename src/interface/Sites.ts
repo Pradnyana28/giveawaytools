@@ -85,6 +85,7 @@ export default abstract class Sites {
           const targetPage = await target.page();
           if (targetPage) {
             await targetPage.setCookie(...cookies);
+            console.log('Session Established!');
             // const client = await targetPage.target().createCDPSession();
             // await client?.send('Runtime.evaluate', {
             //   expression: `localStorage.setItem('hello', 'world')`,
@@ -93,7 +94,7 @@ export default abstract class Sites {
         });
       }
     } catch (err) {
-      console.log('No session')
+      console.log('No session');
     }
   }
 

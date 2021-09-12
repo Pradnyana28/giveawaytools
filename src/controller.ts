@@ -7,12 +7,12 @@ export default async function controller(browserInstance: Promise<any>) {
   const ig = new Instagram({
     browser,
     is2faEnabled: false,
-    tenantName: 'my-tenant'
+    tenantName: 'pradnyana-giveaway'
   });
   const session = new Service(ig);
   const page = await session.boot();
 
   if (page) {
-
+    console.log('START HACKING');
   }
 }

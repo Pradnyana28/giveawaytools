@@ -14,15 +14,11 @@ export default class Instagram extends Sites {
   get elementIDs() {
     return {
       fields: {
-        username: 'input[id=email-phone]',
-        password: 'input[id=password-input]',
-        '2faCode': 'input[autocomplete=one-time-code]'
+        username: 'input[name=username]',
+        password: 'input[name=password]'
       },
       buttons: {
-        usernameSubmit: 'button[id=email-phone-submit]',
-        loginSubmit: 'button[data-unify=Button][type=submit]',
-        loginAction: 'button[data-testid=btnHeaderLogin]',
-        request2faAction: 'div[data-unify=Card][aria-label=sms]'
+        loginSubmit: 'button[type=submit]',
       },
       section: {
         profileHeader: 'div[id=my-profile-header]'
@@ -34,7 +30,9 @@ export default class Instagram extends Sites {
     let signedIn = false;
     // Check after setting cookies if the login button still exist
     try {
-      await page.waitForSelector(this.elementIDs.buttons.loginAction, {
+      // Refresh the page, Instagram still need more time to load the session
+      await page.goto(this.url, { waitUntil: 'networkidle2' });
+      await page.waitForSelector(this.elementIDs.fields.username, {
         timeout: 2000
       });
     } catch (err) {
@@ -42,38 +40,60 @@ export default class Instagram extends Sites {
     }
 
     if (!signedIn) {
-      // Click login action button at the top right of the page
-      await page.click(this.elementIDs.buttons.loginAction);
-
       const userUsername = this.credentials?.username ?? await this.ioInput('Please input your username: => ');
       const userPassword = await this.ioInput('Please input your password: => ');
 
       await this.type(page, this.elementIDs.fields.username, userUsername);
-      await page.click(this.elementIDs.buttons.usernameSubmit);
       await this.type(page, this.elementIDs.fields.password, userPassword);
       await page.click(this.elementIDs.buttons.loginSubmit);
 
-      this.takeScreenshot(page, 'credentials-finisedh');
+      const isValid = await this.validateCredentials(page);
+      if (!isValid) {
+        console.log('Invalid credentials, please try again!');
+        return;
+      }
 
       if (this.is2faEnabled) {
         await this.request2faCode(page);
       }
+
+      await page.waitForNavigation();
+
+      await page.$eval('script[type="text/javascript"]', (element) => {
+        const content = element.innerHTML;
+        console.log(content, 'content');
+        if (content.includes('window._sharedData')) {
+          const userData = content.replace('window._sharedData = ', '');
+          console.log(userData, 'user data');
+        }
+      });
+
+      this.saveCookies(page);
+
+      this.takeScreenshot(page, 'credentials-finished');
+    }
+  }
+
+  async validateCredentials(page: Page) {
+    try {
+      await page.waitForSelector('p[id=slfErrorAlert]', {
+        timeout: 2000
+      });
+      return false;
+    } catch (err) {
+      return true;
     }
   }
 
   async request2faCode(page: Page): Promise<void> {
-    await page.waitForSelector(this.elementIDs.buttons.request2faAction);
-    // SMS proofing screen
-    this.takeScreenshot(page, '2fa-request');
+    // await page.waitForSelector(this.elementIDs.buttons.request2faAction);
+    // // SMS proofing screen
+    // this.takeScreenshot(page, '2fa-request');
 
-    await page.click(this.elementIDs.buttons.request2faAction);
-    const tfaCode = await this.ioInput('Please enter the 2fa code => ');
-    await this.type(page, this.elementIDs.fields['2faCode'], tfaCode);
+    // await page.click(this.elementIDs.buttons.request2faAction);
+    // const tfaCode = await this.ioInput('Please enter the 2fa code => ');
+    // await this.type(page, this.elementIDs.fields['2faCode'], tfaCode);
 
-    await page.waitForNavigation();
-    await page.waitForSelector(this.elementIDs.section.profileHeader);
-
-    // Save the cookies
-    this.saveCookies(page);
+    // await page.waitForSelector(this.elementIDs.section.profileHeader);
   }
 }

@@ -17,7 +17,7 @@ export default class Service {
     let page = await CI.browser.newPage();
 
     try {
-      await page.goto(CI.url);
+      await page.goto(CI.url, { waitUntil: 'networkidle2' });
       await page.waitForTimeout(1000);
       await CI.login(page);
       return page;
