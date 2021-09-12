@@ -21,10 +21,19 @@ export default class SocMedService extends Service<ISocMedService> {
     super(classInjector);
   }
 
-  async getPostLikes(postId: string) {
-    const postLikes = await this.classInjector.crawlPostLikes(this.page as Page, postId);
-    const postLikes2 = await this.classInjector.crawlPostLikes(this.page as Page, postId, postLikes.pageInfo?.endCursor);
-    console.log(postLikes, 'the postLikes')
-    console.log(postLikes2, 'the postLikes 2')
+  async getPostLikes(postId: string, after?: string) {
+    let allLikes: any[] = [];
+    const postLikes = await this.classInjector.crawlPostLikes(this.page as Page, postId, after);
+    if (postLikes.totalLoaded) {
+      allLikes = allLikes.concat(postLikes.likes);
+      if (postLikes.pageInfo?.hasNextPage) {
+        const moreLikes = await this.getPostLikes(postId, postLikes.pageInfo.endCursor);
+        if (moreLikes.length) {
+          allLikes = allLikes.concat(moreLikes);
+        }
+      }
+    }
+
+    return allLikes;
   }
 }

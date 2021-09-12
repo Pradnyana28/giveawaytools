@@ -12,5 +12,5 @@ export default async function controller(browserInstance: Promise<any>) {
   const session = new SocMedService(ig);
   await session.boot();
 
-  await session.getPostLikes('CFhMm9_gkcq');
+  const likes = await session.getPostLikes('CFhMm9_gkcq');
 }
