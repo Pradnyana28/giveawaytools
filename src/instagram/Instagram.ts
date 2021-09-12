@@ -28,7 +28,6 @@ export default class Instagram extends Sites {
 
   async login(page: Page): Promise<void> {
     let signedIn = false;
-    // Check after setting cookies if the login button still exist
     try {
       // Refresh the page, Instagram still need more time to load the session
       await page.goto(this.url, { waitUntil: 'networkidle2' });
@@ -50,7 +49,7 @@ export default class Instagram extends Sites {
       const isValid = await this.validateCredentials(page);
       if (!isValid) {
         console.log('Invalid credentials, please try again!');
-        return;
+        throw new Error('Invalid credentials, please try again.');
       }
 
       if (this.is2faEnabled) {
@@ -85,15 +84,5 @@ export default class Instagram extends Sites {
     }
   }
 
-  async request2faCode(page: Page): Promise<void> {
-    // await page.waitForSelector(this.elementIDs.buttons.request2faAction);
-    // // SMS proofing screen
-    // this.takeScreenshot(page, '2fa-request');
-
-    // await page.click(this.elementIDs.buttons.request2faAction);
-    // const tfaCode = await this.ioInput('Please enter the 2fa code => ');
-    // await this.type(page, this.elementIDs.fields['2faCode'], tfaCode);
-
-    // await page.waitForSelector(this.elementIDs.section.profileHeader);
-  }
+  async request2faCode(page: Page): Promise<void> { }
 }
