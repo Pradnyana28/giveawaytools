@@ -1,3 +1,4 @@
+import { Database } from "../interface/Database";
 import { Page } from "puppeteer";
 import Service, { IService } from "./Service";
 
@@ -17,15 +18,21 @@ interface ISocMedService extends IService {
 }
 
 export default class SocMedService extends Service<ISocMedService> {
+  private db: Database;
+
   constructor(classInjector: ISocMedService) {
     super(classInjector);
+
+    this.db = new Database({
+      dbName: classInjector.url.replace('https://', '')
+    });
   }
 
   async getPostLikes(postId: string, after?: string) {
     let allLikes: any[] = [];
     const postLikes = await this.classInjector.crawlPostLikes(this.page as Page, postId, after);
     if (postLikes.totalLoaded) {
-      allLikes = allLikes.concat(postLikes.likes);
+      allLikes = allLikes.concat(postLikes);
       if (postLikes.pageInfo?.hasNextPage) {
         const moreLikes = await this.getPostLikes(postId, postLikes.pageInfo.endCursor);
         if (moreLikes.length) {
@@ -35,5 +42,14 @@ export default class SocMedService extends Service<ISocMedService> {
     }
 
     return allLikes;
+  }
+
+  async saveLikes(postId: string, items: any) {
+    await this.db.put(`likes-${postId}`, items);
+  }
+
+  async getAllLikes(postId: string) {
+    const data = await this.db.get(`likes-${postId}`);
+    return data;
   }
 }

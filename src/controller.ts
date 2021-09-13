@@ -1,5 +1,6 @@
 import SocMedService from "./services/SocMedService";
 import Instagram from "./instagram/Instagram";
+import { ioInput } from "./libs/utils";
 
 export default async function controller(browserInstance: Promise<any>) {
   const browser = await browserInstance;
@@ -12,5 +13,7 @@ export default async function controller(browserInstance: Promise<any>) {
   const session = new SocMedService(ig);
   await session.boot();
 
-  const likes = await session.getPostLikes('CFhMm9_gkcq');
+  const postShortcode = await ioInput('Input the post shortcode => ');
+  const likes = await session.getPostLikes(postShortcode);
+  await session.saveLikes(postShortcode, likes);
 }

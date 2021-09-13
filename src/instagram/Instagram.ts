@@ -1,6 +1,7 @@
 import Sites, { ISitesWithCredentialsOptions } from "../interface/Sites";
 import { Page } from "puppeteer";
 import { PostLikes } from "services/SocMedService";
+import { ioInput } from "../libs/utils";
 
 interface IInstagram extends ISitesWithCredentialsOptions { }
 
@@ -53,8 +54,8 @@ export default class Instagram extends Sites {
     }
 
     if (!signedIn) {
-      const userUsername = this.credentials?.username ?? await this.ioInput('Please input your username: => ');
-      const userPassword = await this.ioInput('Please input your password: => ');
+      const userUsername = this.credentials?.username ?? await ioInput('Please input your username: => ');
+      const userPassword = await ioInput('Please input your password: => ');
 
       await this.type(page, this.elementIDs.fields.username, userUsername);
       await this.type(page, this.elementIDs.fields.password, userPassword);
