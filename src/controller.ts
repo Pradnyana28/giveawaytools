@@ -13,7 +13,8 @@ export default async function controller(browserInstance: Promise<any>) {
   const session = new SocMedService(ig);
   await session.boot();
 
-  const postShortcode = await ioInput('Input the post shortcode => ');
+  const postShortcode = await ioInput('Input the post shortcode => ', true);
+  console.log('Start retrieving likes');
   const likes = await session.getPostLikes(postShortcode);
   await session.saveLikes(postShortcode, likes);
 }
