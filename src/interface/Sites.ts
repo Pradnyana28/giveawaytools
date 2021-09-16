@@ -1,7 +1,6 @@
 import { Browser, Page, Target } from "puppeteer";
 import fs from 'fs';
 import path from 'path';
-import readline from 'readline';
 
 export interface ISites {
   browser: Browser;
@@ -13,7 +12,6 @@ export interface ISites {
 export interface ISitesObject extends ISites {
   takeScreenshot: (page: Page, name: string) => void;
   saveCookies: (page: Page) => void;
-  ioInput: (question: string) => Promise<string>;
   login: (page: Page) => Promise<void>;
   request2faCode: (page: Page) => Promise<void>;
   checkSession: () => Promise<void>;
@@ -32,28 +30,28 @@ export default abstract class Sites {
   is2faEnabled: boolean;
   tenantName: string;
 
-  private cookiesPath() {
+  get cookiesPath() {
     return `./cookies/${this.url.replace('https://', '')}`;
   }
 
-  private screenshotPath() {
+  get screenshotPath() {
     return `./screenshots/${this.url.replace('https://', '')}`;
   }
 
   private prepareDirectory() {
     try {
       // cookies
-      fs.mkdirSync(path.resolve(this.cookiesPath()));
+      fs.mkdirSync(path.resolve(this.cookiesPath));
     } catch (err: any) {
       // all setted up
     }
     try {
-      fs.mkdirSync(path.resolve(this.screenshotPath()));
+      fs.mkdirSync(path.resolve(this.screenshotPath));
     } catch (err: any) {
       // all setted up
     }
     try {
-      fs.mkdirSync(path.resolve(`${this.screenshotPath()}/${this.tenantName}`));
+      fs.mkdirSync(path.resolve(`${this.screenshotPath}/${this.tenantName}`));
     } catch (err: any) {
       // all setted up
     }
@@ -74,7 +72,7 @@ export default abstract class Sites {
 
   async checkSession(): Promise<void> {
     try {
-      const signedInSession = fs.readFileSync(path.resolve(`${this.cookiesPath()}/${this.tenantName}-cookies.json`));
+      const signedInSession = fs.readFileSync(path.resolve(`${this.cookiesPath}/${this.tenantName}-cookies.json`));
 
       // Check if session exist
       if (signedInSession.length) {
@@ -85,7 +83,6 @@ export default abstract class Sites {
           const targetPage = await target.page();
           if (targetPage) {
             await targetPage.setCookie(...cookies);
-            console.log('Session Established!');
             // const client = await targetPage.target().createCDPSession();
             // await client?.send('Runtime.evaluate', {
             //   expression: `localStorage.setItem('hello', 'world')`,
@@ -99,26 +96,13 @@ export default abstract class Sites {
   }
 
   async takeScreenshot(page: Page, name: string) {
-    await page.screenshot({ path: path.resolve(`${this.screenshotPath()}/${this.tenantName}/${name}.jpg`) });
+    await page.screenshot({ path: path.resolve(`${this.screenshotPath}/${this.tenantName}/${name}.jpg`) });
   }
 
   async saveCookies(page: Page) {
     const cookies = await page.cookies();
-    fs.writeFile(path.resolve(`${this.cookiesPath()}/${this.tenantName}-cookies.json`), JSON.stringify(cookies, null, 2), () => {
+    fs.writeFile(path.resolve(`${this.cookiesPath}/${this.tenantName}-cookies.json`), JSON.stringify(cookies, null, 2), () => {
       console.log('Cookies saved!')
-    });
-  }
-
-  async ioInput(question: string): Promise<string> {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-
-    return new Promise((res) => {
-      rl.question(question, async (input) => {
-        res(input);
-      });
     });
   }
 
