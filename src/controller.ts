@@ -12,7 +12,7 @@ export default async function controller(browserInstance: Promise<any>) {
   const ig = new Instagram({
     browser,
     is2faEnabled: false,
-    tenantName: 'pradnyana-giveaway'
+    tenantName: 'my-giveaway'
   });
   const session = new SocMedService(ig);
   await session.boot();
