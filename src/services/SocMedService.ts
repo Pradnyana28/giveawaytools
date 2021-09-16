@@ -1,31 +1,25 @@
-import { Database } from "../interface/Database";
 import { Page } from "puppeteer";
 import Service, { IService } from "./Service";
 
-export interface PostLikes {
+export interface CrawlResponse {
   id?: string;
   pageInfo?: {
     hasNextPage: boolean;
     endCursor: string;
   },
-  totalLikes: number,
+  total: number,
   totalLoaded: number,
-  likes: any[];
+  data: any[];
 }
 
 interface ISocMedService extends IService {
-  crawlPostLikes: (page: Page, postId: string, endCursor?: string) => Promise<PostLikes>;
+  crawlPostLikes: (page: Page, postId: string, endCursor?: string) => Promise<CrawlResponse>;
+  crawlPostComments: (page: Page, postId: string, endCursor?: string) => Promise<CrawlResponse>;
 }
 
 export default class SocMedService extends Service<ISocMedService> {
-  private db: Database;
-
   constructor(classInjector: ISocMedService) {
     super(classInjector);
-
-    this.db = new Database({
-      dbName: classInjector.url.replace('https://', '')
-    });
   }
 
   async getPostLikes(postId: string, after?: string) {
@@ -44,12 +38,19 @@ export default class SocMedService extends Service<ISocMedService> {
     return allLikes;
   }
 
-  async saveLikes(postId: string, items: any) {
-    await this.db.put(`likes-${postId}`, items);
-  }
+  async getPostComments(postId: string, after?: string) {
+    let allComments: any[] = [];
+    const postComments = await this.classInjector.crawlPostComments(this.page as Page, postId, after);
+    if (postComments.totalLoaded) {
+      allComments = allComments.concat(postComments);
+      if (postComments.pageInfo?.hasNextPage) {
+        const moreComments = await this.getPostComments(postId, postComments.pageInfo.endCursor);
+        if (moreComments.length) {
+          allComments = allComments.concat(moreComments);
+        }
+      }
+    }
 
-  async getAllLikes(postId: string) {
-    const data = await this.db.get(`likes-${postId}`);
-    return data;
+    return allComments;
   }
 }

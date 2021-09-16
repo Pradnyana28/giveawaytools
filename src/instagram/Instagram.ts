@@ -1,6 +1,6 @@
 import Sites, { ISitesWithCredentialsOptions } from "../interface/Sites";
 import { Page } from "puppeteer";
-import { PostLikes } from "services/SocMedService";
+import { CrawlResponse } from "services/SocMedService";
 import { ioInput } from "../libs/utils";
 
 interface IInstagram extends ISitesWithCredentialsOptions { }
@@ -37,7 +37,8 @@ export default class Instagram extends Sites {
 
   private get queryHash() {
     return {
-      likes: 'd5d763b1e2acf209d62d22d184488e57'
+      likes: 'd5d763b1e2acf209d62d22d184488e57',
+      comments: 'bc3296d1ce80a24b1b6e40b1e72903f5'
     }
   }
 
@@ -92,21 +93,41 @@ export default class Instagram extends Sites {
 
   async request2faCode(page: Page): Promise<void> { }
 
-  async crawlPostLikes(page: Page, postId: string, endCursor?: string): Promise<PostLikes> {
+  async crawlPostLikes(page: Page, postId: string, endCursor?: string): Promise<CrawlResponse> {
     const variables = { shortcode: postId, include_reel: true, first: 24, after: endCursor };
-    await page.goto(`${this.graphqlHost}/?query_hash=${this.queryHash.likes}&variables=${JSON.stringify(variables)}`, { waitUntil: 'networkidle2' });
+    await page.goto(this.constructUrl(this.queryHash.likes, variables), { waitUntil: 'networkidle2' });
     const pageContentHtml = await page.content();
     const { data: { shortcode_media } }: GraphResponse = this.convertToJson(pageContentHtml);
     return {
       id: shortcode_media.id,
-      totalLikes: shortcode_media.edge_liked_by.count,
+      total: shortcode_media.edge_liked_by.count,
       totalLoaded: shortcode_media.edge_liked_by.edges.length,
-      likes: this.mapLikesData(shortcode_media.edge_liked_by.edges),
+      data: this.mapLikesData(shortcode_media.edge_liked_by.edges),
       pageInfo: {
         hasNextPage: shortcode_media.edge_liked_by.page_info.has_next_page,
         endCursor: shortcode_media.edge_liked_by.page_info.end_cursor
       }
     };
+  }
+
+  async crawlPostComments(page: Page, postId: string, endCursor?: string): Promise<any> {
+    const variables = { shortcode: postId, first: 24, after: endCursor };
+    await page.goto(this.constructUrl(this.queryHash.comments, variables), { waitUntil: 'networkidle2' });
+    const pageContentHtml = await page.content();
+    const { data: { shortcode_media } } = this.convertToJson(pageContentHtml);
+    return {
+      total: shortcode_media.edge_media_to_parent_comment.count,
+      totalLoaded: shortcode_media.edge_media_to_parent_comment.edges.length,
+      data: this.mapLikesData(shortcode_media.edge_media_to_parent_comment.edges),
+      pageInfo: {
+        hasNextPage: shortcode_media.edge_media_to_parent_comment.page_info.has_next_page,
+        endCursor: shortcode_media.edge_media_to_parent_comment.page_info.end_cursor
+      }
+    };
+  }
+
+  constructUrl(queryHash: string, variables: Record<string, any>) {
+    return `${this.graphqlHost}/?query_hash=${queryHash}&variables=${JSON.stringify(variables)}`;
   }
 
   mapLikesData(likes: any[]) {

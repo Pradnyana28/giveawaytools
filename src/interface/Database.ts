@@ -22,7 +22,6 @@ export class Database {
 
   private prepareDb() {
     try {
-      console.log('Preparing DB')
       fs.mkdirSync(path.resolve(this.dbPath));
     } catch (err: any) {
       if (err.code !== 'EEXIST') {
@@ -47,14 +46,14 @@ export class Database {
   }
 
   async put(tableName: string, items: []) {
-    console.log('Trying to save data => ', tableName);
+    console.log('Trying to save data => ', tableName, items.length);
 
     // TODO at the moment we'll save the data as json file under db folder
     try {
-      fs.writeFile(path.resolve(`${this.dbPath}/${tableName}.json`), JSON.stringify(items, null, 2), () => {
-        console.log(`Items saved. ${items.length}`);
-      });
+      fs.writeFileSync(path.resolve(`${this.dbPath}/${tableName}.json`), JSON.stringify(items, null, 2));
+      console.log(`Items saved. ${items.length}`);
     } catch (err: any) {
+      console.log('error', err)
       if (!errCodes.includes(err.code)) {
         console.log(`Failed while saving data to database`, err);
       }
